@@ -1,0 +1,372 @@
+
+一： MYSQL安装
+
+mysql 编译安装 
+./configure 
+--prefix  : 设定安装路径  默认“/usr/local”
+--datadir : 数据文件存储目录
+--with-charset : 设置系统默认字符集
+--with-unix-socket-path : 设定socket文件地址
+--with-tcp-port : 指定监听端口  默认3306
+--with-debug : 使用非debug 模式 （很重要 禁用debug模式）
+--with-mysqld-ldflags : mysqld的额外link参数  -all-static
+--with-client-ldflags : client的额外link参数  -all-static
+
+
+1：
+
+yum -y install  mysql mysql-server  
+sudo apt-get install 
+server包是核心服务， client是管理工具
+whereis mysql 查找mysql的一些相关目录。
+有my-huge.cnf  my-innodb-heavy-4G.cnf  my-large.cnf my-medium.cnf my-small.cnf 
+选择一个合适的复制到/etc/my.cnf
+
+文档：http://dev.mysql.com/doc/refman/5.1/zh/installing.html#linux-rpm
+
+二：MYSQL基本配置
+
+/etc/init.d/mysqld start， 
+find / -name mysql.sock 
+
+新帐号
+
+information_schema：
+user表
+初始化帐号:
+UPDATE user SET Password = PASSWORD('df2b&#cwe') WHERE user = 'root';
+
+grant all on ucai.* to 'testuser'@'101.251.196.90' identified by 'password';
+FLUSH PRIVILEGES;
+
+skip-networking   跳过web访问要关闭。
+bind-address = 127.0.0.1 这一行要关闭或者修改成允许的IP
+skip-name-resolve 禁止dns解析，只能用IP连，这个可以打开。
+
+mysql默认端口3306
+服务器防火墙开启3306端口
+/sbin/iptables -I INPUT -p tcp --dport 3306 -j ACCEPT
+/etc/rc.d/init.d/iptables save
+/etc/init.d/iptables restart
+
+文档：http://dev.mysql.com/doc/refman/5.1/zh/installing.html#default-privileges
+
+三：root密码忘记怎么办
+
+/etc/init.d/mysqld stop
+
+mysqld_safe
+终端指定配置选项优先级最高。    跳过权限检查          跳过web访问
+mysqld_safe --user=mysql --skip-grant-tables --skip-networking & 
+mysql -u root mysql 
+UPDATE user SET Password = PASSWORD('df2b&#cwe') WHERE user = 'root';
+刷新权限
+FLUSH PRIVILEGES;
+exit;
+
+/etc/init.d/mysqld restart
+
+文档：http://dev.mysql.com/doc/refman/5.1/zh/database-administration.html#mysqld-safe  
+
+
+MYSQL体系结构：
+了解MySql必须牢牢记住其体系结构图，
+Mysql是由`SQL接口`，`解析器`，`优化器`，`缓存`，`存储引擎`组成的。
+文档：http://dev.mysql.com/doc/refman/5.1/zh/pluggable-storage.html
+
+MYSQL存储引擎：
+mysql的存储引擎包括：MyISAM、InnoDB、BDB、MEMORY、MERGE、EXAMPLE、NDBCluster、ARCHIVE、CSV、BLACKHOLE、FEDERATED等，其中InnoDB和BDB提供事务安全表，其他存储引擎都是非事务安全表。
+文档：http://dev.mysql.com/doc/refman/5.1/zh/storage-engines.html
+
+show status;
+
+四：连接数(connection)配置
+
+show variables like 'max_connections'; 
++-----------------+-------+
+| Variable_name   | Value |
++-----------------+-------+
+| max_connections | 151   | 允许的最大连接数
++-----------------+-------+
+
+默认 max_connections=100：
+过少的话“Can not connect to MySQL server. Too many connections”-mysql 1040错误
+看当前连接数：show status like 'threads_connected';
+最大连接数: show status like "max_used_connections";
+根据max_used_connections / max_connections  来确定合适的值
+back_log=50   //如果链接数过大，这个可以起到缓冲的作用。
+max_connect_errors=10  // 链接失败的次数
+connect_timeout=5      //超时次数 
+
+CO演示并发访问网站，
+whereis ab
+./ab  -n 10000 -c 300 http://www.ucai.co/
+其中-n代表总共发送的数量，-c代表每次并发量
+
+
+五：查询缓存(query_cache)配置
+缓存保存在硬盘或者缓存上。
+SHOW VARIABLES LIKE '%query_cache%';
+//sql语句和sql语句查询结果   数据不变，结果不变
++------------------------------+----------+
+| Variable_name                | Value    |
++------------------------------+----------+
+| have_query_cache             | YES      |  //设置查询缓存是否可用
+| query_cache_limit            | 1048576  |  
+//控制缓存查询结果的最大值 如果单个查询结果大于这个值，则不Cache。
+| query_cache_min_res_unit     | 4096     |  每次给QC结果分配内存的大小
+| query_cache_size             | 33554432 |  
+//表示查询缓存大小，也就是分配内存大小给查询缓存，如果你分配大小为0，
+那么 第一步 和 第二步 起不到作用，还是没有任何效果。
+| query_cache_type             | ON       |  //
+| query_cache_wlock_invalidate | OFF      |
++------------------------------+----------+
+query_cache_type=1
+query_cache_size
+query_cache_limit
+
+六：查询缓存(query_cache)效果
+show status like '%Qcache%';
+ +-------------------------+----------+
+| Variable_name           | Value    |
++-------------------------+----------+
+| Qcache_free_blocks      | 160      | 
+//目前还处于空闲状态的 Query Cache中内存 Block 数目，数目大说明可能有碎片。FLUSH QUERY CACHE会对缓存中的碎片进行整理，从而得到一个空闲块。
+| Qcache_free_memory      | 23147296 | 缓存中的空闲内存总量。
+| Qcache_hits             | 52349    | 缓存命中次数。
+| Qcache_inserts          | 8827     | 缓存失效次数。
+| Qcache_lowmem_prunes    | 0        | 
+//缓存出现内存不足并且必须要进行清理以便为更多查询提供空间的次数。这个数字最好长时间来看；如果这个数字在不断增长，就表示可能碎片非常严重，或者内存很少。
+| Qcache_not_cached       | 2446     | 
+//没有被cache和不适合进行缓存的查询的数量，通常是由于这些查询不是SELECT语句以及由于query_cache_type设置的不会被Cache的查询。show,use,desc
+| Qcache_queries_in_cache | 5234     | 当前被cache的SQL数量。
+| Qcache_total_blocks     | 10796    | 缓存中块的数量。
++-------------------------+----------+
+show global status like 'Com_select';  
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| Com_select    | 12592 | com_select 变量记录的是无缓存的查询次数+错误查询+权限检查查询。
++---------------+-------+  
+
+/etc/init.d/mysqld restart 重启可清空数据
+
+并发访问网站
+whereis ab
+./ab  -n 3000 -c 300 http://www.ucai.co/
+其中-n代表总共发送的数量，-c代表每次并发量
+
+命中率 ≈ qcache_hits / (qcache_hits + com_select)
+缓存碎片率 = Qcache_free_blocks / Qcache_total_blocks * 100% 
+查询缓存利用率 = (query_cache_size – Qcache_free_memory) / query_cache_size * 100%
+
+如何提高命中率
+
+七：打开表缓存(table_cache)配置
+//打开表的个数    
+SHOW VARIABLES LIKE '%table_open_cache%';
++------------------+-------+
+| Variable_name    | Value |
++------------------+-------+
+| table_open_cache | 4096  |
++------------------+-------+
+
+//判断设置是否合适
+show global status like 'open%tables%'; 
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| Open_tables   | 1251  | 当前打开的表的数量。
+| Opened_tables | 7035  | 已经打开的表的数量。如果Opened_tables较大，table_cache 值可能太小。
++---------------+-------+
+
+演示：
+flush tables;
+SHOW VARIABLES LIKE '%table_open_cache%';
+show global status like 'open%tables%';  
+select * from product limit 5; 都+1
+重复执行，不加
+
+
+八：临时表缓存(tmp_table_size)配置
+SHOW VARIABLES LIKE '%tmp_table_size%';
++----------------+----------+
+| Variable_name  | Value    |
++----------------+----------+
+| tmp_table_size | 33554432 |  
++----------------+----------+
+
+show global status like 'created_tmp%';
++-------------------------+----------+
+| Variable_name           | Value    |
++-------------------------+----------+
+| Created_tmp_disk_tables | 690421   |  服务器执行语句时在硬盘上自动创建的临时表的数量
+| Created_tmp_files       | 755473   |  mysqld已经创建的临时文件的数量
+| Created_tmp_tables      | 14372959 | 服务器执行语句时自动创建的内存中的临时表的数量。如果Created_tmp_disk_tables较大，你可能要增加tmp_table_size值使临时 表基于内存而不基于硬盘
++-------------------------+----------+
+
+Created_tmp_disk_tables / Created_tmp_tables * 100% <= 25%
+
+
+max_heap_table_size 
+（实际起限制作用的是tmp_table_size和max_heap_table_size的最小值。）
+
+
+九：索引缓冲区（key_buffer_size）配置 
+
+mysql> show variables like 'key_buffer_size'; 
++-----------------+----------+
+| Variable_name   | Value    |
++-----------------+----------+
+| key_buffer_size | 67108864 | 索引缓冲区的大小
++-----------------+----------+
+show variables like 'key_cache_block_size'; 
+
+
+mysql> show global status like 'key%';
++------------------------+------------+
+| Variable_name          | Value      |
++------------------------+------------+
+| Key_blocks_not_flushed | 0          |索引缓存内已经更改，但还没有清空到硬盘上的索引的数据块数量。
+| Key_blocks_unused      | 0          | 索引缓存内未使用的块数量。你可以使用该值来确定使用了多少键缓存
+| Key_blocks_used        | 53585      | 索引缓存内使用的块数量。该值为高水平线标记，说明已经同时最多使用了多少块。
+| Key_read_requests      | 4952122733 | 一共有XXX个索引读取请求，
+| Key_reads              | 11879      | 索引读取请求在内存中没有找到，直接从硬盘读取索引
+| Key_write_requests     | 10508455   | 将索引的数据块写入缓存的请求数。
+| Key_writes             | 6042774    |  将索引向硬盘写入数据块的物理写操作的次数。
++------------------------+------------+
+
+
+比例key_reads /key_read_requests应该尽可能的低，至少是1:100，1:1000更好
+Key_writes/Key_write_requests：比例接近1较好
+
+Cache命中比率：
+1 - Key_reads / Key_read_requests  
+
+Key buffer的使用率
+100 – ( (Key_blocks_unused * key_cache_block_size) * 100 / key_buffer_size )
+
+十：其它缓冲区配置 
+
+sort_buffer_size = 4M
+join_buffer_size = 2M
+read_rnd_buffer_size = 16M
+
+这些设置参考最大链接数。
+
+
+十一：binlog配置
+
+MySQL binlog
+show variables like 'log_bin';   //查看状态
+show variables like '%binlog%';  //
+log-bin=mysql-bin
+sync_binlog = 0
+binlog_cache_size = 16M
+
+打开binlog看看
+show variables like '%datadir%'; 
+
+
+
+慢查询日志
+
+
+
+
+十二：master/slave结构配置
+
+配置master
+server-id=1
+log-bin=mysql-bin
+
+server-id：为主服务器A的ID值
+log-bin：二进制变更日值
+
+GRANT REPLICATION SLAVE ON *.* TO ‘rep’@'192.168.1.3’ IDENTIFIED BY ‘password’;
+
+配置slave
+Slave的配置与master类似，你同样需要重启slave的MySQL。
+在[MySQLd]区段加入
+master-host=192.168.1.2
+　　master-user=backup
+　　master-password=1234
+　　master-port=3306
+　　server-id=2
+　　master-connect-retry=60 预设重试间隔60秒
+　　replicate-do-db=vbb 告诉slave只做VBb数据库的更新
+　　log-slave-updates 
+
+
+运行监控工具mysqlreport
+
+安装和使用都超级简单
+wget http://hackmysql.com/scripts/mysqlreport-3.5.tgz
+tar zxvf mysqlreport-3.5.tgz
+cd mysqlreport-3.5
+
+/root/mysqlreport-3.5
+./mysqlreport --user root -password 
+df2b&#cwe
+
+
+grant all on *.* to 'root'@'locahost' identified by 'df2b&#cwe';
+
+文档：http://hackmysql.com/mysqlreportguide
+
+
+中文手册5.1， http://dev.mysql.com/doc/refman/5.1/zh/index.html
+英文的5.7 http://dev.mysql.com/doc/refman/5.7/en/index.html
+
+
+show variables查看的是mysql系统变量，是MySQL系统运行时的参数，如字符集设置、版本信息、默认参数等，除非手动修改，否则运行时一般不会改变；
+
+而status是MySQL服务器运行统计，如打开的表数量、命令计数、qcache计数等。
+
+
+
+MySql 查看索引
+1
+show index from table_name;
+或者
+1
+show keys from table_name;
+
+打印出的索引信息包括以下几列信息：
+· Table
+表的名称。
+
+· Non_unique
+如果索引不能包括重复词，则为0。如果可以，则为1。
+
+· Key_name
+索引的名称。
+
+· Seq_in_index
+索引中的列序列号，从1开始。
+
+· Column_name
+列名称。
+
+· Collation
+列以什么方式存储在索引中。在MySQL中，有值‘A’（升序）或NULL（无分类）。
+
+· Cardinality
+索引中唯一值的数目的估计值。通过运行ANALYZE TABLE或myisamchk -a可以更新。基数根据被存储为整数的统计数据来计数，所以即使对于小型表，该值也没有必要是精确的。基数越大，当进行联合时，MySQL使用该索引的机 会就越大。
+
+· Sub_part
+如果列只是被部分地编入索引，则为被编入索引的字符的数目。如果整列被编入索引，则为NULL。
+
+· Packed
+指示关键字如何被压缩。如果没有被压缩，则为NULL。
+
+· Null
+如果列含有NULL，则含有YES。如果没有，则该列含有NO。
+
+· Index_type
+用过的索引方法（BTREE, FULLTEXT, HASH, RTREE）。
+
+· Comment
+注释。
+
+

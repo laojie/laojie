@@ -1,0 +1,92 @@
+1，熟悉对XSS CSRF SQL注入的防范
+    XSS 是防止盗号的  跨站脚本攻击
+        1,开启httponly
+        2,过滤html标签 strip_tags
+        3,过滤引号 htmlentities
+        4,转义反斜杠 str_replace
+        5,替换敏感单词，如script expression 等
+        6,强制重置session_id
+    CSRF 是防止刷粉丝  跨站请求伪造, 强制用户进行某些操作
+        1,判断来源
+        2,验证码
+        3,令牌验证
+        4,防止不了僵尸粉
+    SQL注入 是防止盗数据 
+        1,不要相信用户输入的任何信息
+        2,使用过虑函数 mysql_real_escape_string  
+        mysql_real_escape_string 考虑到连接的当前字符集，而mysql_escape_string 不考虑。
+        3,设置用户权限，只允许操作指定的数据库。
+        4,不要用简单的加密方法。
+        5,过滤拼接SQL
+        6,开发时使用PHP-Taint模块开发。
+    其他的安全漏洞：上传图片，include 问题等。
+
+2，熟悉本地缓存Apc,OPCache 外部缓存memcache,redis 等缓存技术  
+    PHP的运行阶段也分成三个阶段：
+        Parse。语法分析阶段。
+        Compile。编译产出opcode中间码。
+        Execute。运行，动态运行进行输出。
+    Apc 
+        APC的使用其实倒说不上.APC是个优化器,自安装之日起,就默默地在后台为您的PHP应用服务了.您的所有PHP代码会被缓存起来.
+    OPcache php5.5 之后的
+    Memcache 与 Redis
+
+
+3，熟练MySql数据库主从搭建,配置优化,索引,SQL优化,缓存技术。
+    主从搭建
+    优化配置
+        可以先使用 show status 来查看状态
+        连接数(connection)配置
+        使用查询缓存
+    索引
+        1，普通索引
+        2，唯一索引
+        3，主键索引
+        4，组合索引
+    SQL优化
+        可以使用explain分析效率底的SQL。
+        Myisam  存储引擎 三个文件 FRM结构  MYD数据 MYI索引
+            最好使用固定长度(CHAR)的数据
+        InnoDB  提供了具有提交、回滚和崩溃恢复能力的事务安全。写的处理效率差一些并且会占用更多的磁盘空间以保留数据和索引。
+
+    缓存  
+
+4，熟悉 PHP 分库分表和构建数据库缓存池。
+    分表的分类 
+        纵向分表
+            分表理由：根据数据的活跃度进行分离。
+                冷数据使用MyIsam 可以有更好的查询数据。活跃数据，可以使用Innodb ,可以有更好的更新速度。 
+                热数据适当加入缓存
+            分库的有点大有分表
+        横向分表
+
+502 错误网关 503 服务不可用
+
+5，
+什么是CGI？
+    CGI全称是“公共网关接口”(Common Gateway Interface)，HTTP服务器与你的或其它机器上的程序进行“交谈”的一种工具，其程序须运行在网络服务器上。
+什么是FastCGI？
+    FastCGI像是一个常驻型的CGI，它可以一直执行着，只要激活后，不会每次都要花费时间去链接一次。将CGI解释器进程保持在内存中并因此获得较高的性能。
+什么是PHP-CGI？
+    PHP-CGI是PHP自带的FastCGI管理器。
+什么是php-fpm？ 
+    PHP5.3.3已经集成php-fpm, 是一个实现了Fastcgi的程序，被PHP官方收了。
+    PHP的解释器是php-cgi。php-cgi只是个CGI程序，他自己本身只能解析请求，返回结果，不会进程管理，PHP-FPM提供了更好的PHP进程管理方式，可以有效控制内存和进程、可以平滑重载等。
+php-cgi是被调用的进程，php-fpm是配置和管理进程的。
+
+6，memcache 与 redis
+ 对于两者的选择还是要看具体的应用场景，如果需要缓存的数据只是key-value这样简单的结构时，我在项目里还是采用memcache，它也足够的稳定可靠。如果涉及到存储，排序等一系列复杂的操作时，毫无疑问选择redis。
+
+ Redis不仅仅支持简单的k/v类型的数据，同时还提供list，set，zset，hash等数据结构的存储。
+ Redis支持数据的备份，即master-slave模式的数据备份。
+ Redis支持数据的持久化，可以将内存中的数据保持在磁盘中，重启的时候可以再次加载进行使用。
+
+ redis:数据量较小的更性能操作和运算上 
+ memcache:用于在动态系统中减少数据库负载,提升性能 ;做缓存,提高性能(适合读多写 少,对于数据量比较大,可以采用 sharding)
+
+
+maridb
+
+supervisor
+
+hadoop、hive、spark

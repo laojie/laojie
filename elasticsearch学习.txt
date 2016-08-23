@@ -1,0 +1,15 @@
+###elasticsearch 学习
+检查集群健康：
+    curl 'localhost:9200/_cat/health?v'
+    status ： green / yellow / red
+节点列表：
+    curl 'localhost:9200/_cat/nodes?v'
+列出所有索引：
+    curl 'localhost:9200/_cat/indices?v'
+添加文档：
+    
+更新文档：
+    使用 _update
+    ctx._source 指向当前被更新的源文档。
+删除文档：
+    delete-by-query插件可以删除匹配指定查询的所有文档。

@@ -1,0 +1,148 @@
+1，硬件配置
+2，带宽
+3，网络，cpu，资源(内存，硬盘)
+4，网络连接数
+5，找到bug原因
+
+Linux
+查看占用内存最高的5个进程
+ps aux | sort -k4nr | head -n 5
+查看占用CPU最高的5个进程
+ps aux | sort -k3nr | head -n 5
+
+查看所有信息使用命令
+ps aux
+
+
+
+一、Nginx是web服务器，提供http服务
+二、CGI/FASTCGI 是 Web Server 与后台语言交互的协议，有了这个协议，开发者可以使用任何语言处理 Web Server 发来的请求，动态的生成内容。
+三、PHP-FPM 支持解析php的一个fastCGI进程管理器/引擎。
+
+
+
+
+
+
+
+
+你(PHP)去和爱斯基摩人(web服务器，如 Apache、Nginx)谈生意
+
+你说中文(PHP代码)，他说爱斯基摩语(C代码)，互相听不懂，怎么办？那就都把各自说的话转换成英语(FastCGI 协议)吧。
+
+怎么转换呢？你就要使用一个翻译机(PHP-FPM)
+(当然对方也有一个翻译机，那个是他自带的)
+
+我们这个翻译机是最新型的，老式的那个（PHP-CGI）被淘汰了。不过它(PHP-FPM)只有年轻人（Linux系统）会用，老头子们（Windows系统）不会摆弄它，只好继续用老式的那个。
+
+
+
+nginx 学习总结
+一，变量
+1，使用set 声明变量，变量名加上$
+Nginx 变量的生命期是不可能跨越请求边界的。
+2，nginx 内部跳转
+    使用echo_exec    rewrite ^  作用是一致的
+    禁止在跳转之前有echo输出操作。
+3，nginx 内部变量
+    $uri 获取当前请求的 URI 并且不含请求参数。
+    $request_uri 获取请求最原始的 URI 并且包含请求参数。
+    $arg_xxx  可以获取到参数为xxx的值，自动把原始请求中的参数名调整为全部小写的形式。
+    $cookie_xxx  获取cookie值
+    $http_xxx   获取请求头
+    $sent_http_xxx  获取响应头
+
+
+
+
+
+二，Nginx使用的php-fpm的两种进程管理方式及优化
+1、静态
+    设置成static，php-fpm进程数自始至终都是pm.max_children指定的数量，不再增加或减少。
+2、动态
+    设置成dynamic，则php-fpm进程数是动态的，最开始是pm.start_servers指定的数量，如果请求较多，则会自动增加，保证空闲的进程数不小于pm.min_spare_servers，如果进程数较多，也会进行相应清理，保证多余的进程数不多于pm.max_spare_servers。
+    
+3、4个参数的意思分别为：
+    pm.max_children：静态方式下开启的php-fpm进程数量。
+    pm.start_servers：动态方式下的起始php-fpm进程数量。
+    pm.min_spare_servers：动态方式下的最小php-fpm进程数量。
+    pm.max_spare_servers：动态方式下的最大php-fpm进程数量
+4、静态和动态的选择
+
+
+
+
+三，Nginx模块中fastcgi这部分通用参数介绍
+1.1 fastcgi_connect_timeout 
+配置语法：  fastcgi_connect_timeout 时间(单位为s) 
+默认值： fastcgi_connect_timeout 60s
+配置区域： http server location 
+配置项说明： 指定nginx与后端fastcgi server连接超时时间
+1.2 fastcgi_send_timeout 
+配置语法：  fastcgi_send_timeout 时间(单位为s) 
+默认值： fastcgi_send_timeout 60s;
+配置区域： http server location 
+配置项说明：指定nginx向后端传送请求超时时间（指已完成两次握手后向fastcgi传送请求超时时间）
+1.3 fastcgi_read_timeout 
+配置语法：  fastcgi_read_timeout 时间(单位为s) 
+默认值：  fastcgi_send_timeout 60s;
+配置区域： http server location 
+配置项说明：指定nginx接受后端fastcgi响应请求超时时间 （指已完成两次握手后nginx接受fastcgi响应请求超时时间）
+1.4 fastcgi_buffer_size 
+配置语法：  fastcgi_buffer_size size (单位为k，一般为4的整数倍) 
+默认值：  fastcgi_buffer_size 4k|8K
+配置区域： http server location 
+配置项说明：指定nginx读取fastcgi响应第一部分需要用多大的缓冲区，这个值表示将使用一个64kb的缓冲区响应第一部分应答（应答头）可以设置为fastcgi_buffers缓存区大小
+1.5 fastcgi_buffers 
+配置语法：  fastcgi_buffers  num  size (单位为k，一般为4的整数倍) 
+默认值：  fastcgi_buffers 8 4k|8K
+配置区域： http server location 
+配置项说明： 指nginx需要用多大的缓冲区缓冲fastcgi的应答请求（整个应答），如果一个php脚本所产生的页面大小为256kb，那么会分配4个64kb缓冲区来缓存，如果页面大于256kb，那么大于256kb的部分会缓存到fastcgi_temp指定的路径中，但是因为内存中数据处理远快于磁盘， 所以这个值应该为站点中php所产生的页面大小的中间值， 如果站点大部分php脚本产生的页面为：256kb， 那么可以设置成成"8 16k  4 64k"
+1.6 fastcgi_busy_buffers_size 
+配置语法：fastcgi_busy_buffers_size size (单位为K，一般为fastcgi_buffers值的2倍)
+默认值：  fastcgi_busy_buffers  8k|16K
+配置区域： http server location 
+配置项说明：整个数据请求需要多大的缓存区，建议设置为fastcgi_buffers值的两倍
+1.7 fastcgi_temp_file_write_size
+配置语法：fastcgi_temp_file_write_size size (单位为K，一般为fastcgi_buffers值的两倍)
+默认值： fastcgi_temp_file_write_size  8k|16K
+配置区域： http server location 
+配置项说明：写入缓存文件使用多大的数据块，默认值是fastcgi_buffer值的2倍
+1.8 fastcgi_temp_path 
+配置语法：fastcgi_temp_path path （临时文件存放路径）
+配置区域： http server location 
+配置项说明：fastcgi临时文件存放路径
+注:不过这一配置项常常不会用到
+1.9 fastcgi_cache_path
+配置语法：fastcgi_cache_path path [levels=levels] [use_temp_path=on|off] keys_zone=name:size [inactive=time] [max_size=size] [loader_files=number] [loader_sleep=time] [loader_threshold=time] [purger=on|off] [purger_files=number] [purger_sleep=time] [purger_threshold=time];        
+配置区域： http server location 
+配置项说明：定义fastcgi缓存的路径及其他设置
+1.10 fastcgi_cache 
+配置语法：fastcgi_cache zone |off (其中zone对应fastcgi_cache_path 中zone名称)
+
+默认值： fastcgi_cache off
+配置区域： http ,server, location 
+配置项说明：开启fastcgi_cache并为其定义一个名称，可以防止nginx 502错误，降低cpu负载，不过也会引起其他问题，根据需求来选择
+1.11 fastcgi_cache_valid
+配置语法：fastcgi_cache_valid {code} time
+配置区域： http server location 
+配置项说明：为指定的应答代码指定缓存时间
+例如
+fastcgi_cache_valid 200 302 1h; 
+fastcgi_cache_valid any 1m;  
+上面意思就是对于状态码为200 302的网页缓存1小时，其他页面缓存1分钟
+1.12 fastcgi_cache_key
+配置语法：fastcgi_cache_key value  
+配置区域： http server location 
+配置项说明：以某个值为key，Nginx会取这个key的md5作为缓存文件 如果设置了缓存哈希目录，Nginx会从后往前取相应的位数做为目录
+例如：
+fastcgi_cache_key "$request_method://$host$request_uri";
+1.13 fastcgi_cache_min_uses  
+配置语法：fastcgi_cache_min_uses  
+配置区域： http server location 
+配置项说明：URL至少经过多少次请求将被缓存
+1.14 fastcgi_cache_use_stale
+配置语法：fastcgi_cache_use_stale error | timeout | invalid_header | updating | http_500 | http_503 |http_403 | http_404 | off ...;
+默认值： fastcgi_cache_use_stale off
+配置区域： http server location 
+配置项说明：对一些错误提示code，nginx会使用到fast_cache缓存

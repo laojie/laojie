@@ -1,0 +1,17 @@
+github.com/go-redis/redis
+https://github.com/xuyu/goredis
+github.com/lunny/tango
+flash 插件
+https://github.com/tango-contrib/flash
+usb 插件
+https://github.com/hilerchyn/goImageExample
+
+1,空格包括：空白，tab，换行，回车
+2,标识符由字母和数字组成还有 '_', 都是UTF-8编码
+3,内置函数new用于分配内存。
+4,Go中的内存都是被初始化了的，所有变量在执行之前的声明时被初始化。
+5,空返回：一个没有返回表达式的return 将返回结果变量的当前值。
+6,int: 0 bool: false string: '' 指针, map, 切片, channel: nil  struct: 0
+7,切片是对底层数组的一个引用。
+8,Slice, Map
+9,每个类型都实现了空接口interface{}。

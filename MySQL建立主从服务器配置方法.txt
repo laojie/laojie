@@ -1,0 +1,61 @@
+MySQL建立主从服务器配置方法
+　　A、环境描述
+　　服务器A(主) 192.168.1.106
+　　服务器B(从) 192.168.1.107
+　　Mysql版本：5.5.11
+　　System OS：CentOS 5.6 X64
+　　主从需同步的数据库内容保持一致。
+　　B、主从配置过程
+　　主服务器
+　　a)创建同步用户
+　　在主服务器上为从服务器建立一个连接帐户，该帐户必须授予REPLICAITON SLAVE权限。
+　　服务器A：
+	grant replication slave on *.* to 'replication'@'192.168.1.%' identified by '000000';
+	flush privileges;
+    b)修改mysql配置文件
+        [mysqld]  
+        server-id = 1  
+        log-bin=mysql-bin
+    c)重启mysql服务 
+        service mysqld restart
+    d)、查看主服务器状态
+        mysql>flush tables with read lock;
+        mysql>show master status\G
+        *************************** 1. row ***************************
+                    File: binlog.000006
+                Position: 107
+            Binlog_Do_DB: test
+        Binlog_Ignore_DB: mysql
+        1 row in set (0.00 sec)
+         
+        mysql>unlock tables;
+            　注：这里锁表的目的是为了生产环境中不让进新的数据，好让从服务器定位同步位置。初次同步完成后，记得解锁。
+    从服务器
+　　a)修改mysql配置文件
+[mysqld]  
+        server-id = 2
+       log-bin=mysql-bin
+    b)重启mysql服务
+        service mysqld restart
+    c)用change master语句指定同步位置
+    mysql>change master to master_host='192.168.1.106', master_user='replication', master_password='000000', master_log_file='binlog.000006', master_log_pos=107;
+    注：master_log_file，master_log_pos由上面主服务器查出的状态值中确定。master_log_file对应File，master_log_pos对应Position。
+　　　　mysql 5.x以上版本已经不支持在配置文件中指定主服务器相关选项。
+　　d)启动从服务器线程
+    mysql>start slave;
+    e)查看从服务器状态
+        mysql>show slave status\G;
+ 
+Slave_IO_Running: Yes
+Slave_SQL_Running: Yes
+查看以上两项的值，均为Yes则表示状态正常。
+　　C、测试主从同步
+
+
+
+
+
+
+
+
+

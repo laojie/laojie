@@ -1,0 +1,93 @@
+###mysql  学习
+
+alter 的使用：
+desc ucai = show columns from ucai;
+添加字段 
+alter table ucai add xxx int;
+修改字段
+alter table ucai modify xxx int(30);
+alter table ucai modify xxxx varchar(30) not null DEFAULT 'aaaaa';
+替换字段
+alter table ucai change xxx xxxx varchar(15);
+删除字段
+alter table ucai drop xxx;
+
+删除默认约束通过使用DROP子句一起使用ALTER命令。
+later table ucai alter xxxx drop default;
+
+更改表类型:
+alter table ucai type = InnDB
+表重命名
+alter table ucai rename to ucai_1;
+
+一，mysql 基础
+1，mysql 表复制
+    获取完整的表结构: show create table ucai \G;
+    复制表结构：create table ucai like ucai_test;
+    复制表数据：insert into ucai select * from ucai_test;
+
+2，mysql 索引
+     alter table 用来创建普通索引、unique索引或primary key索引
+        alter table ucai add index index_name (cloumn_list)
+        alter table ucai add unique index_name (cloumn_list
+        alter table ucai add primary key (cloumn_list)
+     修改
+     alter table ucai modify id int unsigned not null
+     删除
+     alter table ucai drop inder/unique xxx index_name
+
+3，mysql 视图
+4，mysql 内置函数
+    字符串函数：
+        concat(string [,...])  //链接字符串
+        lcase(string)          //转换成小写
+        ucase(string)          //转换成大写
+        length(string)         //string长度
+        ltrim(string)          //去除前端空格
+        rtrim(string)          //去除后端空格
+        repeat(string, count)         //重复count次
+        
+    数学函数：
+        BIN(十进制数) //十进制转二进制
+        CEILING(小数) //向上取整
+        FLOOR(小数)   //向下取整
+        MAX(字段)     //取最大值
+        MIN(字段)     //取最小值
+        SQRT(数字)    //平方根
+        RAND()       //放回0-1随机数
+    日期函数：
+        curdate()    //返回当前日期
+        curtime()    //返回当前时间
+        now()        //返回当前日期时间
+        unix_timestamp(date)  //返回当前date的UNIX时间戳
+        from_unixtime()   //返回unix时间戳的日期值
+        week(date)        //返回日期date为一年中的第几个星期
+        year(date)        //返回日期date的年份
+        datediff(time1,time2) //起始和结束时间差
+
+5，mysql 预处理语句
+6，mysql 事物处理
+7，mysql 存储
+8，mysql 触发器
+9，重排auto_increment值
+
+
+服务器的基本信息
+服务器的版本：select version();
+当前表：     select database();
+当前用户：   select user();
+服务器状态： show status;
+服务器配置变量：show variables;
+
+mysql 处理NULL值
+MySQL提供了三大运算符
+
+IS NULL: 此运算符返回true，当列的值是NULL。
+IS NOT NULL: 运算符返回true，当列的值不是NULL。
+<=> 操作符比较值（不同于=运算符）为ture，即使两个NULL值
+
+涉及NULL条件是特殊的。不能使用 =NULL 或 !=NULL 寻找NULL值的列。这种比较总是告诉他们是否是真正的失败，因为这是不可能的。即使是NULL=NULL失败。
+
+如果要查找是或不是NULL的列，请使用IS NULL或IS NOT NULL。
+
+grant replication slave on *.* to 'john'@'%' identified by '123456';

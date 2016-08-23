@@ -1,0 +1,61 @@
+5修改my.cnf配置文件:
+[client]
+default-character-set=utf8
+[mysql]
+default-character-set=utf8
+[mysqld]
+slow_query_log=on
+slow-query-log-file=/var/log/mysql/slow.log
+long_query_time=0.03
+log-queries-not-using-indexes
+character-set-server=utf8
+collation-server=utf8_unicode_ci
+init-connect='SET NAMES utf8'
+max_connections=3000
+
+
+修改完配置文件后,记得保存重启mysql服务.
+可以在mysql里直接开启慢查询:
+mysql>set global slow_query_log='ON';
+
+查询慢查询是否开启:
+mysql> show variables like "slow_query_log";
++----------------+-------+
+| Variable_name  | Value |
++----------------+-------+
+| slow_query_log | ON    |
++----------------+-------+
+1 row in set (0.00 sec)
+
+当然也可以用下面的命令:
+mysql> show variables like "%query%";
++------------------------------+-------------------------+
+| Variable_name                | Value                   |
++------------------------------+-------------------------+
+| binlog_rows_query_log_events | OFF                     |
+| ft_query_expansion_limit     | 20                      |
+| have_query_cache             | YES                     |
+| long_query_time              | 0.030000                |
+| query_alloc_block_size       | 8192                    |
+| query_cache_limit            | 1048576                 |
+| query_cache_min_res_unit     | 4096                    |
+| query_cache_size             | 1048576                 |
+| query_cache_type             | OFF                     |
+| query_cache_wlock_invalidate | OFF                     |
+| query_prealloc_size          | 8192                    |
+| slow_query_log               | ON                      |
+| slow_query_log_file          | /var/log/mysql/slow.log |
++------------------------------+-------------------------+
+13 rows in set (0.00 sec)
+
+最后检查/var/log/mysql/slow.log的用户和组是否为mysql,权限是否可写,并且查看slow.log的文件大小是否有改变,这样才说明慢查询是开启成功了的,并且有记录到日志文件里.
+
+
+如果输入$ git remote add origin git@github.com:djqiang（github帐号名）/gitdemo（项目名）.git 
+    提示出错信息：fatal: remote origin already exists.
+    解决办法如下：
+    1、先输入$ git remote rm origin
+    2、再输入$ git remote add origin git@github.com:djqiang/gitdemo.git 就不会报错了！
+    3、如果输入$ git remote rm origin 还是报错的话，error: Could not remove config section 'remote.origin'. 我们需要修改gitconfig文件的内容
+    4、找到你的github的安装路径，我的是C:\Users\ASUS\AppData\Local\GitHub\PortableGit_ca477551eeb4aea0e4ae9fcd3358bd96720bb5c8\etc
+    5、找到一个名为gitconfig的文件，打开它把里面的[remote "origin"]那一行删掉就好了！
